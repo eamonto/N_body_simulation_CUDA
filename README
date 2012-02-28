@@ -1,0 +1,163 @@
+=========================================================================
+README
+=========================================================================
+
+    Copyright (C) 2012  Edison Montoya, eamonto@gmail.com
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+Up to date: 28 Feb 2012					
+
+=========================================================================
+
+
+This program evolve a N-body system that interacts gravitationally,
+using the particle-particle approach. In this file are specified the files, 
+functions and how use the program.
+ 
+To compile the program execute in the terminal:
+
+$make
+
+
+To run the program execute:
+
+$make run
+
+
+It need to be spefied the global variables into the Makefile
+
+INITFILE = init.txt
+INPUTFILE = entrada.dat
+OUTPUTFILE = salida
+
+(this are the default values). Doing this, the program look for the 
+input file (INPUTFILE) and write the output in the directory (OUTOUTFILE)
+that is created by the program.
+
+
+The program is execute as
+
+$./exec <initfile> <inputfile> <outputfile>
+
+
+exec         --> executable 
+
+<initfile>   --> Parameters of the system
+
+<inputfile>  --> Initial conditions for the system, order:
+	         radial distance, position x, y, z, velocity x, y, z, mass.
+
+<outputfile> --> Name of the output directory.
+
+
+esample:
+./exec.out init.txt input.dat outputfile
+
+
+All the outputs are write into the directory "outputfile", the files are:
+
+* A copy of the parameters file (INITFILE).
+
+* Files with the evolution of the system <outputfile>_#.dat, the data
+  are arranged as:
+  radius, position x, y, z, velocity x, y, z, mass.  
+
+
+The files into this repository are:
+
+
+========================================================================
+init.txt
+========================================================================
+Contains the parameters, namely,
+
+1000          NUMBER OF PARTICLES
+0.005         TIME STEP
+1.0           GRAVITATIONAL CONSTANT
+0.0           ROTATION
+1.0	      NUMBER OF OUTPUT FILES
+1.0	      NUMBER OF INTEGRATION PER FILE
+0.16	      SOFTENING LENGHT (EPS) 
+0	      ELECTION OF INTEGRATOR, 0=SYMPLECTIC, 1=RK4
+
+
+Note: The RK4 integrations is already not implemented.
+
+
+========================================================================
+input.dat
+========================================================================
+This file have initial conditions for 1000 particles that make a polytropic
+stellar system with polytropic index n=1.5, whit this file can be run
+tests of the program. The values into "init.txt" and the Makefile are for
+this system. The result must be that the system remains in equilibrium.
+
+
+========================================================================
+main.cu
+========================================================================
+This is the main file, from here are coordinated all the operations, namely,
+evolution in time and communications between CPU and GPU. All the global
+variables in the CPU are defined here. The program evolves the system 
+using a symplectic integrator (leapfrog).
+
+
+
+=========================================================================
+lib_io.c
+=========================================================================
+Into this file are implemented all the input-output routines.
+
+
+///////////VERIFICATION OF INPUT FILES/////////////
+int usage(void)
+
+//REMOVE OLD outputfile AND CREATE A NEW ONE
+int create_remove_dir(void)
+
+////////READ PARAMETERS OF THE SYSTEM/////
+int read(void)
+
+//////////////////////READ INITIAL POSITIONS AND VELOCITIES////////////////////
+int read_input(void)
+
+////////////WRITE RADIUS, POSITIONS, VELOCITIES AND MASS/////////////////////
+int write_output(int j)
+
+/////////FREE MEMORY THAT WAS ALLOCATE IN THE CPU///////////
+int free_CPU_memory(void)
+
+
+
+=========================================================================
+lib_N_body.cu
+=========================================================================
+Set of functions that runs in the GPU, namely, the integration in time
+of particles positions and the calculation of aceleration using the
+particle-particle approach. The routines are:
+
+
+//EVOLUTION OF POSITIONS USING THE leapfrog ALGORITHM
+__global__ void cuda_pos(float *dt, float *vel0, float *vel1, float *vel2, 
+	   float *pos0, float *pos1, float *pos2)
+
+
+//////////////// ACELERATION(in variable acele) OF PARTICLE i////////////////
+__global__ void cuda_aceleration (int *i, float *eps, float *G, float *dt, 
+	   float *mass, float *pos0, float *pos1, float *pos2, 
+	   float *vel0, float *vel1, float *vel2, float *acele0, 
+	   float *acele1, float *acele2)
+
